@@ -64,18 +64,38 @@
 
     .nav-links {
       display: flex;
+      align-items: center;
       gap: 1.5rem;
       list-style: none;
       font-size: .9rem;
+      flex-wrap: nowrap;
     }
 
     .nav-links a { color: var(--muted); transition: color .15s; }
     .nav-links a:hover { color: var(--text); text-decoration: none; }
 
-    /* items that collapse into hamburger on mobile */
     .nav-links .nav-collapsible { display: list-item; }
 
-    /* hamburger button */
+    .lang-select {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .2rem .4rem;
+      font-size: .8rem;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .4rem center;
+      padding-right: 1.2rem;
+    }
+
+    .lang-select:hover { color: var(--text); border-color: var(--accent); }
+    .lang-select option { background: var(--surface); color: var(--text); }
+
     .hamburger {
       display: none;
       background: none;
@@ -87,7 +107,6 @@
       line-height: 1;
     }
 
-    /* mobile drawer */
     .mobile-menu {
       display: none;
       position: fixed;
@@ -419,7 +438,12 @@
     <li class="nav-collapsible"><a href="#commands">Commands</a></li>
     <li class="nav-collapsible"><a href="#install">Install</a></li>
     <li><a href="https://github.com/OffskyLab/orbital">GitHub</a></li>
-    <li><a href="zh_TW.html">繁體中文</a></li>
+    <li>
+      <select class="lang-select" onchange="switchLang(this.value)">
+        <option value="index.html" selected>English</option>
+        <option value="zh_TW.html">繁體中文</option>
+      </select>
+    </li>
     <li><button class="hamburger" onclick="toggleMenu()" aria-label="Menu">&#9776;</button></li>
   </ul>
 </nav>
@@ -580,6 +604,10 @@
 </footer>
 
 <script>
+function switchLang(url) {
+  window.location.href = url;
+}
+
 function toggleMenu() {
   document.getElementById('mobile-menu').classList.toggle('open');
 }
