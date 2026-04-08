@@ -29,8 +29,8 @@ public enum Tool: String, Codable, CaseIterable, Sendable {
     public var sessionSubdirectories: [String] {
         switch self {
         case .claude: return ["projects", "sessions", "session-env"]
-        case .codex:  return []
-        case .gemini: return []
+        case .codex:  return ["sessions"]
+        case .gemini: return ["tmp"]
         }
     }
 }

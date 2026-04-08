@@ -27,10 +27,9 @@ public struct EnvironmentStore: Sendable {
     private var currentURL: URL { homeURL.appendingPathComponent("current") }
     private var sharedURL: URL { homeURL.appendingPathComponent("shared") }
 
-    /// Returns the shared session directory for a tool (e.g. `~/.orbital/shared/claude/projects`)
+    /// Returns the shared directory for a tool (e.g. `~/.orbital/shared/claude/`)
     public func sharedSessionDir(tool: Tool) -> URL {
         sharedURL.appendingPathComponent(tool.subdirectory)
-            .appendingPathComponent("projects")
     }
 
     // Directory for an environment, keyed by UUID

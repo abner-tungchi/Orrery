@@ -10,40 +10,27 @@ public struct SessionsCommand: ParsableCommand {
     public init() {}
 
     public func run() throws {
-        let projectKey = Self.projectKey(for: FileManager.default.currentDirectoryPath)
+        let cwd = FileManager.default.currentDirectoryPath
         let store = EnvironmentStore.default
 
-        var allEntries: [(tool: String, id: String, firstMessage: String, lastTime: Date?, userCount: Int)] = []
-
-        for tool in Tool.allCases {
-            let files = Self.collectSessionFiles(tool: tool, projectKey: projectKey, store: store)
-            for file in files {
-                if let entry = Self.parseSession(file: file, tool: tool.rawValue) {
-                    allEntries.append(entry)
-                }
-            }
-        }
-
-        if allEntries.isEmpty {
-            print(L10n.Sessions.noSessions)
-            return
-        }
-
-        // Group by tool, sort each group by last time descending
-        let grouped = Dictionary(grouping: allEntries, by: { $0.tool })
         let displayFormatter = DateFormatter()
         displayFormatter.dateStyle = .short
         displayFormatter.timeStyle = .short
 
+        var hasAny = false
+
         for tool in Tool.allCases {
-            guard var entries = grouped[tool.rawValue], !entries.isEmpty else { continue }
-            entries.sort { ($0.lastTime ?? .distantPast) > ($1.lastTime ?? .distantPast) }
+            let entries = Self.findSessions(tool: tool, cwd: cwd, store: store)
+            guard !entries.isEmpty else { continue }
+            hasAny = true
+
+            let sorted = entries.sorted { ($0.lastTime ?? .distantPast) > ($1.lastTime ?? .distantPast) }
 
             print("")
             print("  \(tool.rawValue)")
             print("  \(String(repeating: "-", count: 76))")
             print("  \(L10n.Sessions.header)")
-            for e in entries {
+            for e in sorted {
                 let idShort = String(e.id.prefix(8))
                 let title = String(e.firstMessage.prefix(36))
                 let msgs = "\(e.userCount) msgs"
@@ -51,81 +38,194 @@ public struct SessionsCommand: ParsableCommand {
                 print("  \(idShort)  \(title.padding(toLength: 38, withPad: " ", startingAt: 0))\(msgs.padding(toLength: 12, withPad: " ", startingAt: 0))\(timeStr)")
             }
         }
-        print("")
+
+        if !hasAny {
+            print(L10n.Sessions.noSessions)
+        } else {
+            print("")
+        }
     }
 
-    // MARK: - Helpers
+    // MARK: - Per-tool session discovery
 
-    static func collectSessionFiles(tool: Tool, projectKey: String, store: EnvironmentStore) -> [URL] {
+    struct SessionEntry {
+        let id: String
+        let firstMessage: String
+        let lastTime: Date?
+        let userCount: Int
+    }
+
+    static func findSessions(tool: Tool, cwd: String, store: EnvironmentStore) -> [SessionEntry] {
+        switch tool {
+        case .claude: return findClaudeSessions(cwd: cwd, store: store)
+        case .codex:  return findCodexSessions(store: store)
+        case .gemini: return findGeminiSessions(cwd: cwd, store: store)
+        }
+    }
+
+    // MARK: - Claude: projects/<project-key>/*.jsonl
+
+    static func findClaudeSessions(cwd: String, store: EnvironmentStore) -> [SessionEntry] {
+        let projectKey = cwd.replacingOccurrences(of: "/", with: "-")
         var files: [URL] = []
         var seen = Set<String>()
 
-        // Shared sessions
-        let sharedProjectDir = store.sharedSessionDir(tool: tool)
+        // Shared
+        let sharedDir = store.sharedSessionDir(tool: .claude)
+            .appendingPathComponent("projects")
             .appendingPathComponent(projectKey)
-        files.append(contentsOf: jsonlFiles(in: sharedProjectDir))
+        files.append(contentsOf: jsonlFiles(in: sharedDir))
 
-        // Per-env sessions (isolated or un-migrated)
+        // Per-env (non-symlinked)
         for name in (try? store.listNames()) ?? [] {
-            let projectsDir = store.toolConfigDir(tool: tool, environment: name)
+            let projectsDir = store.toolConfigDir(tool: .claude, environment: name)
                 .appendingPathComponent("projects")
-            // Skip symlinked dirs (already covered by shared)
-            if let _ = try? FileManager.default.destinationOfSymbolicLink(atPath: projectsDir.path) {
-                continue
-            }
-            let envProjectDir = projectsDir.appendingPathComponent(projectKey)
-            var isDir: ObjCBool = false
-            if FileManager.default.fileExists(atPath: envProjectDir.path, isDirectory: &isDir), isDir.boolValue {
-                files.append(contentsOf: jsonlFiles(in: envProjectDir))
-            }
+            if isSymlink(projectsDir) { continue }
+            let dir = projectsDir.appendingPathComponent(projectKey)
+            files.append(contentsOf: jsonlFiles(in: dir))
         }
 
-        // Deduplicate by session ID
-        return files.filter { url in
-            let id = url.deletingPathExtension().lastPathComponent
-            return seen.insert(id).inserted
-        }
+        return dedup(files, seen: &seen).compactMap { parseClaudeSession(file: $0) }
     }
 
-    static func parseSession(file: URL, tool: String) -> (tool: String, id: String, firstMessage: String, lastTime: Date?, userCount: Int)? {
+    static func parseClaudeSession(file: URL) -> SessionEntry? {
         let id = file.deletingPathExtension().lastPathComponent
         guard let data = try? String(contentsOf: file, encoding: .utf8) else { return nil }
-
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
         var firstUser: String?
         var lastTimestamp: Date?
         var userCount = 0
 
         for line in data.components(separatedBy: .newlines) where !line.isEmpty {
-            guard let d = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { continue }
-
-            let type = d["type"] as? String
-
-            if let ts = d["timestamp"] as? String, let date = isoFormatter.date(from: ts) {
-                if lastTimestamp == nil || date > lastTimestamp! { lastTimestamp = date }
+            guard let d = jsonDict(line) else { continue }
+            updateTimestamp(from: d, current: &lastTimestamp)
+            if d["type"] as? String == "user" {
+                userCount += 1
+                if firstUser == nil { firstUser = extractText(from: d, key: "message") }
             }
-            if let snap = d["snapshot"] as? [String: Any],
-               let ts = snap["timestamp"] as? String,
-               let date = isoFormatter.date(from: ts) {
-                if lastTimestamp == nil || date > lastTimestamp! { lastTimestamp = date }
-            }
+        }
+        return SessionEntry(id: id, firstMessage: firstUser ?? "(empty)", lastTime: lastTimestamp, userCount: userCount)
+    }
 
-            if type == "user" {
+    // MARK: - Codex: sessions/YYYY/MM/DD/rollout-*.jsonl (global, not project-scoped)
+
+    static func findCodexSessions(store: EnvironmentStore) -> [SessionEntry] {
+        var files: [URL] = []
+        var seen = Set<String>()
+
+        // Shared
+        let sharedDir = store.sharedSessionDir(tool: .codex)
+            .appendingPathComponent("sessions")
+        files.append(contentsOf: findRecursiveJsonl(in: sharedDir, prefix: "rollout-"))
+
+        // Per-env
+        for name in (try? store.listNames()) ?? [] {
+            let sessionsDir = store.toolConfigDir(tool: .codex, environment: name)
+                .appendingPathComponent("sessions")
+            if isSymlink(sessionsDir) { continue }
+            files.append(contentsOf: findRecursiveJsonl(in: sessionsDir, prefix: "rollout-"))
+        }
+
+        return dedup(files, seen: &seen).compactMap { parseCodexSession(file: $0) }
+    }
+
+    static func parseCodexSession(file: URL) -> SessionEntry? {
+        let id = file.deletingPathExtension().lastPathComponent
+            .replacingOccurrences(of: "rollout-", with: "")
+        guard let data = try? String(contentsOf: file, encoding: .utf8) else { return nil }
+
+        var firstUser: String?
+        var lastTimestamp: Date?
+        var userCount = 0
+
+        for line in data.components(separatedBy: .newlines) where !line.isEmpty {
+            guard let d = jsonDict(line) else { continue }
+            updateTimestamp(from: d, current: &lastTimestamp)
+            let role = d["role"] as? String ?? d["type"] as? String
+            if role == "user" {
                 userCount += 1
                 if firstUser == nil {
-                    firstUser = extractUserText(from: d)
+                    firstUser = extractText(from: d, key: "message")
+                        ?? extractText(from: d, key: "content")
+                        ?? (d["content"] as? String).map { String($0.prefix(80)) }
+                }
+            }
+        }
+        return SessionEntry(id: id, firstMessage: firstUser ?? "(empty)", lastTime: lastTimestamp, userCount: userCount)
+    }
+
+    // MARK: - Gemini: tmp/<project-hash>/chats/checkpoint-*.json
+
+    static func findGeminiSessions(cwd: String, store: EnvironmentStore) -> [SessionEntry] {
+        var files: [URL] = []
+        var seen = Set<String>()
+
+        // Scan all project-hash dirs under shared tmp/
+        let sharedTmp = store.sharedSessionDir(tool: .gemini)
+            .appendingPathComponent("tmp")
+        files.append(contentsOf: findGeminiCheckpoints(in: sharedTmp))
+
+        // Per-env
+        for name in (try? store.listNames()) ?? [] {
+            let tmpDir = store.toolConfigDir(tool: .gemini, environment: name)
+                .appendingPathComponent("tmp")
+            if isSymlink(tmpDir) { continue }
+            files.append(contentsOf: findGeminiCheckpoints(in: tmpDir))
+        }
+
+        return dedup(files, seen: &seen).compactMap { parseGeminiSession(file: $0) }
+    }
+
+    static func findGeminiCheckpoints(in baseDir: URL) -> [URL] {
+        let fm = FileManager.default
+        guard let projectDirs = try? fm.contentsOfDirectory(at: baseDir, includingPropertiesForKeys: nil) else { return [] }
+        var results: [URL] = []
+        for dir in projectDirs {
+            let chatsDir = dir.appendingPathComponent("chats")
+            guard let files = try? fm.contentsOfDirectory(at: chatsDir, includingPropertiesForKeys: nil) else { continue }
+            results.append(contentsOf: files.filter {
+                $0.lastPathComponent.hasPrefix("checkpoint-") && $0.pathExtension == "json"
+            })
+        }
+        return results
+    }
+
+    static func parseGeminiSession(file: URL) -> SessionEntry? {
+        let id = file.deletingPathExtension().lastPathComponent
+            .replacingOccurrences(of: "checkpoint-", with: "")
+        guard let data = try? Data(contentsOf: file),
+              let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+
+        var firstUser: String?
+        var userCount = 0
+
+        for msg in arr {
+            if msg["role"] as? String == "user" {
+                userCount += 1
+                if firstUser == nil {
+                    if let parts = msg["parts"] as? [[String: Any]] {
+                        for part in parts {
+                            if let text = part["text"] as? String {
+                                firstUser = String(text.prefix(80))
+                                break
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        let title = firstUser ?? "(empty)"
-        return (tool: tool, id: id, firstMessage: title, lastTime: lastTimestamp, userCount: userCount)
+        // Use file modification date as timestamp
+        let attrs = try? FileManager.default.attributesOfItem(atPath: file.path)
+        let modDate = attrs?[.modificationDate] as? Date
+
+        return SessionEntry(id: id, firstMessage: firstUser ?? "(empty)", lastTime: modDate, userCount: userCount)
     }
 
-    static func projectKey(for path: String) -> String {
-        path.replacingOccurrences(of: "/", with: "-")
+    // MARK: - Shared helpers
+
+    static func sharedSessionDir(store: EnvironmentStore, tool: Tool) -> URL {
+        store.sharedSessionDir(tool: tool)
     }
 
     static func jsonlFiles(in dir: URL) -> [URL] {
@@ -135,8 +235,52 @@ public struct SessionsCommand: ParsableCommand {
         return contents.filter { $0.pathExtension == "jsonl" }
     }
 
-    static func extractUserText(from dict: [String: Any]) -> String? {
-        guard let msg = dict["message"] as? [String: Any] else { return nil }
+    static func findRecursiveJsonl(in dir: URL, prefix: String) -> [URL] {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(at: dir, includingPropertiesForKeys: [.isRegularFileKey]) else { return [] }
+        var results: [URL] = []
+        for case let url as URL in enumerator {
+            if url.pathExtension == "jsonl" && url.lastPathComponent.hasPrefix(prefix) {
+                results.append(url)
+            }
+        }
+        return results
+    }
+
+    static func isSymlink(_ url: URL) -> Bool {
+        (try? FileManager.default.destinationOfSymbolicLink(atPath: url.path)) != nil
+    }
+
+    static func dedup(_ files: [URL], seen: inout Set<String>) -> [URL] {
+        files.filter { url in
+            let id = url.deletingPathExtension().lastPathComponent
+            return seen.insert(id).inserted
+        }
+    }
+
+    private static nonisolated(unsafe) let isoFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    static func jsonDict(_ line: String) -> [String: Any]? {
+        try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any]
+    }
+
+    static func updateTimestamp(from d: [String: Any], current: inout Date?) {
+        if let ts = d["timestamp"] as? String, let date = isoFormatter.date(from: ts) {
+            if current == nil || date > current! { current = date }
+        }
+        if let snap = d["snapshot"] as? [String: Any],
+           let ts = snap["timestamp"] as? String,
+           let date = isoFormatter.date(from: ts) {
+            if current == nil || date > current! { current = date }
+        }
+    }
+
+    static func extractText(from d: [String: Any], key: String) -> String? {
+        guard let msg = d[key] as? [String: Any] else { return nil }
         let content = msg["content"]
         if let text = content as? String {
             return String(text.prefix(80))
