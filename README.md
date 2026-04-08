@@ -1,7 +1,7 @@
 # orbital
 
 <p align="center">
-  <img src="assets/icon-1024x1024.png" alt="orbital" width="128" />
+  <img src="assets/icon-1024x1024.png" alt="orbital" width="256" height="256" />
 </p>
 
 Per-shell environment manager for AI CLI tools — isolate accounts for Claude Code, Codex CLI, and Gemini CLI across work and personal contexts.
@@ -20,7 +20,7 @@ When you run `orbital use work`, a shell function intercepts the command, calls 
 
 ## Requirements
 
-- macOS 15+
+- macOS 13+
 - zsh
 
 ## Installation
@@ -66,10 +66,9 @@ This appends `eval "$(orbital init)"` to `~/.zshrc`. Restart your terminal or ru
 orbital create work --description "Work account"
 orbital create personal --description "Personal account"
 
-# Add AI tools to each environment
-orbital add tool claude -e work
-orbital add tool codex -e work
-orbital add tool claude -e personal
+# Manage tools for an environment (interactive multi-select)
+orbital tools -e work
+orbital tools -e personal
 
 # Store credentials
 orbital set env ANTHROPIC_API_KEY sk-ant-work123 -e work
@@ -94,7 +93,7 @@ orbital deactivate
 | `orbital delete <name>` | Delete an environment (prompts for confirmation) |
 | `orbital delete <name> --force` | Delete without confirmation |
 | `orbital list` | List all environments (`*` marks the active one) |
-| `orbital info <name>` | Show full details of an environment |
+| `orbital info [name]` | Show full details of an environment (defaults to active) |
 
 ### Switching
 
@@ -110,8 +109,7 @@ orbital deactivate
 
 | Command | Description |
 |---|---|
-| `orbital add tool <tool> -e <name>` | Add a tool (`claude`, `codex`, `gemini`) |
-| `orbital remove tool <tool> -e <name>` | Remove a tool |
+| `orbital tools [-e <name>]` | Manage tools interactively (multi-select) |
 | `orbital set env <KEY> <VALUE> -e <name>` | Set an environment variable |
 | `orbital unset env <KEY> -e <name>` | Remove an environment variable |
 | `orbital which <tool>` | Print the config dir path for a tool in the active environment |
@@ -156,4 +154,4 @@ Custom env vars set with `orbital set env` are also exported on `orbital use`.
 
 ## License
 
-MIT
+Apache 2.0
