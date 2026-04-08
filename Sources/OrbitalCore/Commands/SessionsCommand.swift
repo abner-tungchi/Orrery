@@ -27,15 +27,16 @@ public struct SessionsCommand: ParsableCommand {
             let sorted = entries.sorted { ($0.lastTime ?? .distantPast) > ($1.lastTime ?? .distantPast) }
 
             print("")
-            print("  \u{1B}[1m\(tool.rawValue)\u{1B}[0m")
+            print("  \u{1B}[1m\(tool.displayName)\u{1B}[0m")
             print("")
             for (i, e) in sorted.enumerated() {
+                let idx = i + 1
                 let title = String(e.firstMessage.prefix(60))
                 let msgs = "\(e.userCount) msgs"
                 let timeStr = e.lastTime.map { displayFormatter.string(from: $0) } ?? "?"
-                print("  \u{1B}[2m\(e.id)\u{1B}[0m")
-                print("  \(title)")
-                print("  \u{1B}[2m\(msgs) \u{1B}[0m·\u{1B}[2m \(timeStr)\u{1B}[0m")
+                print("  \u{1B}[1m[\(idx)]\u{1B}[0m \(title)")
+                print("      \u{1B}[2m\(msgs) · \(timeStr)\u{1B}[0m")
+                print("      \u{1B}[2m\(e.id)\u{1B}[0m")
                 if i < sorted.count - 1 { print("") }
             }
         }

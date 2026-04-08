@@ -13,6 +13,14 @@ public enum Tool: String, Codable, CaseIterable, Sendable {
 
     public var subdirectory: String { rawValue }
 
+    public var displayName: String {
+        switch self {
+        case .claude: return "\u{1F7E0} Anthropic Claude"
+        case .codex:  return "\u{26AA} OpenAI Codex"
+        case .gemini: return "\u{1F7E2} Google Gemini"
+        }
+    }
+
     /// npm install command, nil if setup not supported
     public var installCommand: [String]? {
         switch self {
