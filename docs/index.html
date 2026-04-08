@@ -469,14 +469,14 @@
 <!-- Install -->
 <div class="install-block" id="install">
   <div class="install-label">Install via Homebrew</div>
-  <div class="code-block" id="install-brew">
-    <button class="copy-btn" onclick="copyCode('install-brew')">Copy</button>
+  <div class="code-block">
+    <button class="copy-btn" data-cmd="brew install OffskyLab/orbital/orbital">Copy</button>
     <span class="prompt">$ </span>brew install OffskyLab/orbital/orbital
   </div>
   <div style="height:.75rem"></div>
   <div class="install-label">Activate shell integration</div>
-  <div class="code-block" id="install-setup">
-    <button class="copy-btn" onclick="copyCode('install-setup')">Copy</button>
+  <div class="code-block">
+    <button class="copy-btn" data-cmd='eval "$(orbital setup)"'>Copy</button>
     <span class="prompt">$ </span>eval "$(orbital setup)"
   </div>
 </div>
@@ -615,14 +615,12 @@ function closeMenu() {
   document.getElementById('mobile-menu').classList.remove('open');
 }
 
-function copyCode(id) {
-  const block = document.getElementById(id);
-  const text = block.textContent
-    .replace(/^Copy/, '')
-    .replace(/^\$\s*/gm, '')
-    .trim();
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = block.querySelector('.copy-btn');
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const cmd = btn.getAttribute('data-cmd');
+  if (!cmd) return;
+  navigator.clipboard.writeText(cmd).then(() => {
     btn.textContent = 'Copied!';
     btn.classList.add('copied');
     setTimeout(() => {
@@ -630,7 +628,7 @@ function copyCode(id) {
       btn.classList.remove('copied');
     }, 1500);
   });
-}
+});
 </script>
 
 </body>

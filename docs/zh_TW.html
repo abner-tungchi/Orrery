@@ -469,14 +469,14 @@
 <!-- Install -->
 <div class="install-block" id="install">
   <div class="install-label">透過 Homebrew 安裝</div>
-  <div class="code-block" id="install-brew">
-    <button class="copy-btn" onclick="copyCode('install-brew')">複製</button>
+  <div class="code-block">
+    <button class="copy-btn" data-cmd="brew install OffskyLab/orbital/orbital" data-label="複製" data-copied="已複製！">複製</button>
     <span class="prompt">$ </span>brew install OffskyLab/orbital/orbital
   </div>
   <div style="height:.75rem"></div>
   <div class="install-label">啟用 Shell 整合</div>
-  <div class="code-block" id="install-setup">
-    <button class="copy-btn" onclick="copyCode('install-setup')">複製</button>
+  <div class="code-block">
+    <button class="copy-btn" data-cmd='eval "$(orbital setup)"' data-label="複製" data-copied="已複製！">複製</button>
     <span class="prompt">$ </span>eval "$(orbital setup)"
   </div>
 </div>
@@ -615,22 +615,22 @@ function closeMenu() {
   document.getElementById('mobile-menu').classList.remove('open');
 }
 
-function copyCode(id) {
-  const block = document.getElementById(id);
-  const text = block.textContent
-    .replace(/^複製/, '')
-    .replace(/^\$\s*/gm, '')
-    .trim();
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = block.querySelector('.copy-btn');
-    btn.textContent = '已複製！';
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const cmd = btn.getAttribute('data-cmd');
+  if (!cmd) return;
+  const label = btn.getAttribute('data-label') || 'Copy';
+  const copiedLabel = btn.getAttribute('data-copied') || 'Copied!';
+  navigator.clipboard.writeText(cmd).then(() => {
+    btn.textContent = copiedLabel;
     btn.classList.add('copied');
     setTimeout(() => {
-      btn.textContent = '複製';
+      btn.textContent = label;
       btn.classList.remove('copied');
     }, 1500);
   });
-}
+});
 </script>
 
 </body>
