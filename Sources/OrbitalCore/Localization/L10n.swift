@@ -354,11 +354,6 @@ public enum L10n {
                 ? "在此專案中找不到任何 session。"
                 : "No sessions found for this project."
         }
-        public static var detailHeader: String {
-            isChinese
-                ? "    首則訊息                                    筆數        最後更新"
-                : "    First message                              Msgs        Last updated"
-        }
     }
 
     // MARK: - ExportCommand / UnexportCommand
