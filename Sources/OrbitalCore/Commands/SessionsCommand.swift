@@ -7,119 +7,123 @@ public struct SessionsCommand: ParsableCommand {
         abstract: L10n.Sessions.abstract
     )
 
-    @Option(name: .shortAndLong, help: ArgumentHelp(L10n.Sessions.toolHelp))
-    public var tool: String = "claude"
-
     public init() {}
 
     public func run() throws {
-        guard let t = Tool(rawValue: tool) else {
-            throw ValidationError(L10n.Sessions.unknownTool(tool))
-        }
-
         let projectKey = Self.projectKey(for: FileManager.default.currentDirectoryPath)
         let store = EnvironmentStore.default
 
-        // Collect session files from shared dir and all env dirs
-        var sessionFiles: [URL] = []
+        var allEntries: [(tool: String, id: String, firstMessage: String, lastTime: Date?, userCount: Int)] = []
 
-        // Shared sessions
-        let sharedProjectDir = store.sharedSessionDir(tool: t)
-            .appendingPathComponent(projectKey)
-        sessionFiles.append(contentsOf: Self.jsonlFiles(in: sharedProjectDir))
-
-        // Per-env sessions (for isolated or un-migrated envs)
-        for name in (try? store.listNames()) ?? [] {
-            let envProjectDir = store.toolConfigDir(tool: t, environment: name)
-                .appendingPathComponent("projects")
-                .appendingPathComponent(projectKey)
-            // Skip if it's a symlink (already covered by shared)
-            var isDir: ObjCBool = false
-            let projectsDir = store.toolConfigDir(tool: t, environment: name)
-                .appendingPathComponent("projects")
-            if let _ = try? FileManager.default.destinationOfSymbolicLink(atPath: projectsDir.path) {
-                continue
-            }
-            if FileManager.default.fileExists(atPath: envProjectDir.path, isDirectory: &isDir), isDir.boolValue {
-                sessionFiles.append(contentsOf: Self.jsonlFiles(in: envProjectDir))
+        for tool in Tool.allCases {
+            let files = Self.collectSessionFiles(tool: tool, projectKey: projectKey, store: store)
+            for file in files {
+                if let entry = Self.parseSession(file: file, tool: tool.rawValue) {
+                    allEntries.append(entry)
+                }
             }
         }
 
-        // Deduplicate by session ID
-        var seen = Set<String>()
-        sessionFiles = sessionFiles.filter { url in
-            let id = url.deletingPathExtension().lastPathComponent
-            return seen.insert(id).inserted
-        }
-
-        if sessionFiles.isEmpty {
+        if allEntries.isEmpty {
             print(L10n.Sessions.noSessions)
             return
         }
 
-        // Parse and sort by last timestamp
-        var entries: [(id: String, firstMessage: String, lastTime: String, userCount: Int)] = []
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        // Group by tool, sort each group by last time descending
+        let grouped = Dictionary(grouping: allEntries, by: { $0.tool })
         let displayFormatter = DateFormatter()
         displayFormatter.dateStyle = .short
         displayFormatter.timeStyle = .short
 
-        for file in sessionFiles {
-            let id = file.deletingPathExtension().lastPathComponent
-            guard let data = try? String(contentsOf: file, encoding: .utf8) else { continue }
+        for tool in Tool.allCases {
+            guard var entries = grouped[tool.rawValue], !entries.isEmpty else { continue }
+            entries.sort { ($0.lastTime ?? .distantPast) > ($1.lastTime ?? .distantPast) }
 
-            var firstUser: String?
-            var lastTimestamp: Date?
-            var userCount = 0
-
-            for line in data.components(separatedBy: .newlines) where !line.isEmpty {
-                guard let d = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { continue }
-
-                let type = d["type"] as? String
-
-                // Extract timestamps
-                if let ts = d["timestamp"] as? String, let date = isoFormatter.date(from: ts) {
-                    if lastTimestamp == nil || date > lastTimestamp! { lastTimestamp = date }
-                }
-                if let snap = d["snapshot"] as? [String: Any],
-                   let ts = snap["timestamp"] as? String,
-                   let date = isoFormatter.date(from: ts) {
-                    if lastTimestamp == nil || date > lastTimestamp! { lastTimestamp = date }
-                }
-
-                // Count user messages and extract first one as title
-                if type == "user" {
-                    userCount += 1
-                    if firstUser == nil {
-                        firstUser = Self.extractUserText(from: d)
-                    }
-                }
+            print("")
+            print("  \(tool.rawValue)")
+            print("  \(String(repeating: "-", count: 76))")
+            print("  \(L10n.Sessions.header)")
+            for e in entries {
+                let idShort = String(e.id.prefix(8))
+                let title = String(e.firstMessage.prefix(36))
+                let msgs = "\(e.userCount) msgs"
+                let timeStr = e.lastTime.map { displayFormatter.string(from: $0) } ?? "?"
+                print("  \(idShort)  \(title.padding(toLength: 38, withPad: " ", startingAt: 0))\(msgs.padding(toLength: 12, withPad: " ", startingAt: 0))\(timeStr)")
             }
-
-            let title = firstUser ?? "(empty)"
-            let timeStr = lastTimestamp.map { displayFormatter.string(from: $0) } ?? "?"
-
-            entries.append((id: id, firstMessage: title, lastTime: timeStr, userCount: userCount))
         }
-
-        // Sort by last time descending (most recent first)
-        entries.sort { $0.lastTime > $1.lastTime }
-
-        // Print
-        print(L10n.Sessions.header)
-        print(String(repeating: "-", count: 78))
-        for e in entries {
-            let idShort = String(e.id.prefix(8))
-            let title = String(e.firstMessage.prefix(36))
-            let msgs = "\(e.userCount) msgs"
-            print("\(idShort)  \(title.padding(toLength: 38, withPad: " ", startingAt: 0))\(msgs.padding(toLength: 12, withPad: " ", startingAt: 0))\(e.lastTime)")
-        }
+        print("")
     }
 
     // MARK: - Helpers
 
-    /// Convert a directory path to Claude's project key format
+    static func collectSessionFiles(tool: Tool, projectKey: String, store: EnvironmentStore) -> [URL] {
+        var files: [URL] = []
+        var seen = Set<String>()
+
+        // Shared sessions
+        let sharedProjectDir = store.sharedSessionDir(tool: tool)
+            .appendingPathComponent(projectKey)
+        files.append(contentsOf: jsonlFiles(in: sharedProjectDir))
+
+        // Per-env sessions (isolated or un-migrated)
+        for name in (try? store.listNames()) ?? [] {
+            let projectsDir = store.toolConfigDir(tool: tool, environment: name)
+                .appendingPathComponent("projects")
+            // Skip symlinked dirs (already covered by shared)
+            if let _ = try? FileManager.default.destinationOfSymbolicLink(atPath: projectsDir.path) {
+                continue
+            }
+            let envProjectDir = projectsDir.appendingPathComponent(projectKey)
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: envProjectDir.path, isDirectory: &isDir), isDir.boolValue {
+                files.append(contentsOf: jsonlFiles(in: envProjectDir))
+            }
+        }
+
+        // Deduplicate by session ID
+        return files.filter { url in
+            let id = url.deletingPathExtension().lastPathComponent
+            return seen.insert(id).inserted
+        }
+    }
+
+    static func parseSession(file: URL, tool: String) -> (tool: String, id: String, firstMessage: String, lastTime: Date?, userCount: Int)? {
+        let id = file.deletingPathExtension().lastPathComponent
+        guard let data = try? String(contentsOf: file, encoding: .utf8) else { return nil }
+
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        var firstUser: String?
+        var lastTimestamp: Date?
+        var userCount = 0
+
+        for line in data.components(separatedBy: .newlines) where !line.isEmpty {
+            guard let d = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { continue }
+
+            let type = d["type"] as? String
+
+            if let ts = d["timestamp"] as? String, let date = isoFormatter.date(from: ts) {
+                if lastTimestamp == nil || date > lastTimestamp! { lastTimestamp = date }
+            }
+            if let snap = d["snapshot"] as? [String: Any],
+               let ts = snap["timestamp"] as? String,
+               let date = isoFormatter.date(from: ts) {
+                if lastTimestamp == nil || date > lastTimestamp! { lastTimestamp = date }
+            }
+
+            if type == "user" {
+                userCount += 1
+                if firstUser == nil {
+                    firstUser = extractUserText(from: d)
+                }
+            }
+        }
+
+        let title = firstUser ?? "(empty)"
+        return (tool: tool, id: id, firstMessage: title, lastTime: lastTimestamp, userCount: userCount)
+    }
+
     static func projectKey(for path: String) -> String {
         path.replacingOccurrences(of: "/", with: "-")
     }

@@ -346,18 +346,8 @@ public enum L10n {
     public enum Sessions {
         public static var abstract: String {
             isChinese
-                ? "列出當前專案的 Claude session"
-                : "List Claude sessions for the current project"
-        }
-        public static var toolHelp: String {
-            isChinese
-                ? "工具名稱（預設：claude）"
-                : "Tool name (default: claude)"
-        }
-        public static func unknownTool(_ tool: String) -> String {
-            isChinese
-                ? "未知工具 '\(tool)'。"
-                : "Unknown tool '\(tool)'."
+                ? "列出當前專案的 AI tool session"
+                : "List AI tool sessions for the current project"
         }
         public static var noSessions: String {
             isChinese
