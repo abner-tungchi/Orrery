@@ -7,8 +7,14 @@ public struct SessionsCommand: ParsableCommand {
         abstract: L10n.Sessions.abstract
     )
 
-    @Option(name: .shortAndLong, help: ArgumentHelp(L10n.Sessions.toolHelp))
-    public var tool: String?
+    @Flag(help: "Show Anthropic Claude sessions")
+    public var claude: Bool = false
+
+    @Flag(help: "Show OpenAI Codex sessions")
+    public var codex: Bool = false
+
+    @Flag(help: "Show Google Gemini sessions")
+    public var gemini: Bool = false
 
     public init() {}
 
@@ -17,14 +23,9 @@ public struct SessionsCommand: ParsableCommand {
         let store = EnvironmentStore.default
 
         let tools: [Tool]
-        if let filter = tool {
-            guard let t = Tool(rawValue: filter) else {
-                throw ValidationError(L10n.Sessions.unknownTool(filter))
-            }
-            tools = [t]
-        } else {
-            tools = Tool.allCases.map { $0 }
-        }
+        let flags: [(Bool, Tool)] = [(claude, .claude), (codex, .codex), (gemini, .gemini)]
+        let selected = flags.filter(\.0).map(\.1)
+        tools = selected.isEmpty ? Tool.allCases.map { $0 } : selected
 
         let displayFormatter = DateFormatter()
         displayFormatter.dateStyle = .short
