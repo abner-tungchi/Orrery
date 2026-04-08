@@ -341,6 +341,36 @@ public enum L10n {
         }
     }
 
+    // MARK: - SessionsCommand
+
+    public enum Sessions {
+        public static var abstract: String {
+            isChinese
+                ? "列出當前專案的 Claude session"
+                : "List Claude sessions for the current project"
+        }
+        public static var toolHelp: String {
+            isChinese
+                ? "工具名稱（預設：claude）"
+                : "Tool name (default: claude)"
+        }
+        public static func unknownTool(_ tool: String) -> String {
+            isChinese
+                ? "未知工具 '\(tool)'。"
+                : "Unknown tool '\(tool)'."
+        }
+        public static var noSessions: String {
+            isChinese
+                ? "在此專案中找不到任何 session。"
+                : "No sessions found for this project."
+        }
+        public static var header: String {
+            isChinese
+                ? "ID        首則訊息                                筆數        最後更新"
+                : "ID        First message                          Msgs        Last updated"
+        }
+    }
+
     // MARK: - ExportCommand / UnexportCommand
 
     public enum Export {
