@@ -1,0 +1,86 @@
+# Changelog
+
+## v0.10.0
+
+- Built-in `default` environment — `orbital use default` returns to system config
+- `orbital deactivate` now aliases to `orbital use default`
+- Clone wizard in `orbital create` — single-select to clone from `default` or any existing environment
+- Session sharing wizard changed to single-select UI
+- Each create wizard step is independent — only skipped if its flag is provided
+- `orbital sessions` command with `--claude`, `--codex`, `--gemini` flags
+- Sessions display with branded tool names, indexed card layout, full session ID
+- Pre-built binary releases for macOS (arm64), Linux (x86_64, arm64)
+- `.deb` packages and APT repository (Ubuntu/Debian)
+- GitHub Pages with Use Cases section, language switcher (English / 繁體中文)
+
+## v0.1.9
+
+- `orbital sessions` command — list AI tool sessions for the current project
+- `--claude`, `--codex`, `--gemini` filter flags
+- APT repository auto-update in release workflow
+- GitHub Pages and README updated with sessions command and APT install
+
+## v0.1.8
+
+- Branded tool names in sessions output (Anthropic Claude, OpenAI Codex, Google Gemini)
+- Sessions card layout with full session ID for `claude --resume`
+- GitHub Pages badge and hero title updates
+
+## v0.1.7
+
+- Linux build fix — replace C stdio with Foundation `FileHandle` for Swift 6 concurrency safety
+- Remove macOS x86_64 from release workflow (Apple Silicon only)
+- Release workflow outputs `.tar.gz` archives
+
+## v0.1.6
+
+- `orbital sessions` — list Claude sessions for the current project
+- Session support for Codex (`sessions/`) and Gemini (`tmp/`) directories
+- Remove auth login instructions from create flow
+
+## v0.1.5
+
+- Fix locale detection — skip empty `LC_ALL`/`LC_MESSAGES` before falling through to `LANG`
+- Lazy session symlink migration — `orbital use` auto-creates symlinks for existing environments
+- Pre-built binary releases via GitHub Actions
+
+## v0.1.4
+
+- Capitalize product name to Orbital (CLI command stays lowercase)
+- Mobile hamburger menu for GitHub Pages
+- Language dropdown switcher (English / 繁體中文)
+- Copy buttons on install code blocks
+- GitHub Pages with Traditional Chinese version
+
+## v0.1.3 (not released as tag)
+
+- Session sharing across environments (default: shared, `--isolate-sessions` to opt out)
+- Bash shell support (`orbital setup` auto-detects shell)
+- `orbital setup` outputs shell function to stdout for immediate `eval`
+- `post_install` in Homebrew formula
+- i18n support — Traditional Chinese and English (auto-detect from system locale)
+- Traditional Chinese README
+
+## v0.1.2
+
+- Interactive multi-select wizard for tool management
+- `orbital info` defaults to active environment
+- Linux support with auth instructions
+- Switch to Apache 2.0 license
+
+## v0.1.1
+
+- UUID-based environment directories (rename no longer moves dirs)
+- `orbital rename` command
+- `orbital use` command with shell integration
+- Hide internal commands from help
+
+## v0.1.0
+
+- Initial release
+- `orbital create`, `delete`, `list`, `info` commands
+- `orbital set env`, `unset env`, `tools` commands
+- `orbital setup` and `orbital init` for shell integration
+- Per-shell environment activation via `orbital use`
+- Support for Claude Code, Codex CLI, and Gemini CLI
+- Homebrew formula and install script
