@@ -4,7 +4,7 @@ public struct OrbitalCommand: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "orbital",
         abstract: L10n.Orbital.abstract,
-        version: "0.1.9",
+        version: "0.10.0",
         subcommands: [
             SetupCommand.self,
             InitCommand.self,
