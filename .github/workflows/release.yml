@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: swift build -c release
+        run: swift build -c release --static-swift-stdlib
       - name: Package tar.gz
         run: |
           mkdir -p dist
@@ -73,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: swift build -c release
+        run: swift build -c release --static-swift-stdlib
       - name: Package tar.gz
         run: |
           mkdir -p dist
