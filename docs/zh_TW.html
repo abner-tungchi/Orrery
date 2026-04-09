@@ -438,6 +438,7 @@
     <li class="nav-collapsible"><a href="#use-cases">情境</a></li>
     <li class="nav-collapsible"><a href="#commands">指令</a></li>
     <li class="nav-collapsible"><a href="#install">安裝</a></li>
+    <li class="nav-collapsible"><a href="#mcp">MCP</a></li>
     <li class="nav-collapsible"><a href="https://github.com/OffskyLab/Orbital/blob/main/CHANGELOG.md">更新日誌</a></li>
     <li><a href="https://github.com/OffskyLab/Orbital">GitHub</a></li>
     <li>
@@ -455,6 +456,7 @@
   <li><a href="#use-cases" onclick="closeMenu()">情境</a></li>
   <li><a href="#commands" onclick="closeMenu()">指令</a></li>
   <li><a href="#install" onclick="closeMenu()">安裝</a></li>
+  <li><a href="#mcp" onclick="closeMenu()">MCP</a></li>
   <li><a href="https://github.com/OffskyLab/Orbital/blob/main/CHANGELOG.md" onclick="closeMenu()">更新日誌</a></li>
 </ul>
 
@@ -652,6 +654,65 @@
       <div class="command-list">
         <div class="command-item"><span class="cmd">orbital setup</span><span class="cmd-desc">安裝 shell 整合</span></div>
         <div class="command-item"><span class="cmd">orbital init</span><span class="cmd-desc">輸出 shell function</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP Integration -->
+<section class="how-section" id="mcp">
+  <h2 class="section-title">MCP 整合</h2>
+  <p style="text-align:center;color:var(--muted);max-width:580px;margin:0 auto 2rem">
+    透過 <a href="https://modelcontextprotocol.io/" style="color:var(--accent)">Model Context Protocol</a> 將 Orbital 連接到 Claude Code 作為原生工具。不需要 HTTP，不需要 API key — 純 stdin/stdout 溝通。
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>註冊 MCP server</h4>
+        <p>在終端機執行一次：</p>
+        <div class="code-block" style="margin-top:.5rem">
+          <button class="copy-btn" data-cmd="claude mcp add orbital -- orbital mcp-server" data-label="複製" data-copied="已複製！">複製</button>
+          <span class="prompt">$ </span>claude mcp add orbital -- orbital mcp-server
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>在 Claude Code 中使用</h4>
+        <p>Claude Code 會自動取得以下工具：</p>
+        <div style="margin-top:.75rem;display:grid;gap:.5rem">
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_delegate</code>
+            <span style="color:var(--muted);font-size:.85rem">委派任務給其他帳號的 AI 工具</span>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_list</code>
+            <span style="color:var(--muted);font-size:.85rem">列出所有環境</span>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_sessions</code>
+            <span style="color:var(--muted);font-size:.85rem">列出當前專案的 session</span>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_current</code>
+            <span style="color:var(--muted);font-size:.85rem">查看目前啟用的環境</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>跨帳號委派任務</h4>
+        <p>讓 Claude 使用另一個帳號作為子代理：</p>
+        <div class="code-block" style="margin-top:.5rem;font-size:.85rem">
+          <span style="color:var(--muted)">你：</span>用 orbital_delegate 請我的工作帳號 review 這個 PR<br/><br/>
+          <span style="color:var(--muted)">Claude：</span>我會委派給你的工作環境...<br/>
+          <span style="color:var(--accent2)">[呼叫 orbital_delegate，environment="work"]</span>
+        </div>
       </div>
     </div>
   </div>

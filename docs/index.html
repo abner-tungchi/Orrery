@@ -438,6 +438,7 @@
     <li class="nav-collapsible"><a href="#use-cases">Use Cases</a></li>
     <li class="nav-collapsible"><a href="#commands">Commands</a></li>
     <li class="nav-collapsible"><a href="#install">Install</a></li>
+    <li class="nav-collapsible"><a href="#mcp">MCP</a></li>
     <li class="nav-collapsible"><a href="https://github.com/OffskyLab/Orbital/blob/main/CHANGELOG.md">Changelog</a></li>
     <li><a href="https://github.com/OffskyLab/Orbital">GitHub</a></li>
     <li>
@@ -455,6 +456,7 @@
   <li><a href="#use-cases" onclick="closeMenu()">Use Cases</a></li>
   <li><a href="#commands" onclick="closeMenu()">Commands</a></li>
   <li><a href="#install" onclick="closeMenu()">Install</a></li>
+  <li><a href="#mcp" onclick="closeMenu()">MCP</a></li>
   <li><a href="https://github.com/OffskyLab/Orbital/blob/main/CHANGELOG.md" onclick="closeMenu()">Changelog</a></li>
 </ul>
 
@@ -652,6 +654,65 @@
       <div class="command-list">
         <div class="command-item"><span class="cmd">orbital setup</span><span class="cmd-desc">Install shell integration</span></div>
         <div class="command-item"><span class="cmd">orbital init</span><span class="cmd-desc">Print shell function (eval)</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP Integration -->
+<section class="how-section" id="mcp">
+  <h2 class="section-title">MCP Integration</h2>
+  <p style="text-align:center;color:var(--muted);max-width:580px;margin:0 auto 2rem">
+    Connect Orbital to Claude Code as a native tool via <a href="https://modelcontextprotocol.io/" style="color:var(--accent)">Model Context Protocol</a>. No HTTP, no API keys — just stdin/stdout.
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Register the MCP server</h4>
+        <p>Run this once in your terminal:</p>
+        <div class="code-block" style="margin-top:.5rem">
+          <button class="copy-btn" data-cmd="claude mcp add orbital -- orbital mcp-server">Copy</button>
+          <span class="prompt">$ </span>claude mcp add orbital -- orbital mcp-server
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Use it in Claude Code</h4>
+        <p>Claude Code now has access to these tools automatically:</p>
+        <div style="margin-top:.75rem;display:grid;gap:.5rem">
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_delegate</code>
+            <span style="color:var(--muted);font-size:.85rem">Delegate a task to another account's AI tool</span>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_list</code>
+            <span style="color:var(--muted);font-size:.85rem">List all environments</span>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_sessions</code>
+            <span style="color:var(--muted);font-size:.85rem">List sessions for the current project</span>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:baseline">
+            <code style="color:var(--accent2);font-size:.85rem;white-space:nowrap">orbital_current</code>
+            <span style="color:var(--muted);font-size:.85rem">Get the active environment</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Delegate tasks across accounts</h4>
+        <p>Ask Claude to use another account as a sub-agent:</p>
+        <div class="code-block" style="margin-top:.5rem;font-size:.85rem">
+          <span style="color:var(--muted)">You:</span> Use orbital_delegate to ask my work account to review this PR<br/><br/>
+          <span style="color:var(--muted)">Claude:</span> I'll delegate this to your work environment...<br/>
+          <span style="color:var(--accent2)">[calling orbital_delegate with environment="work"]</span>
+        </div>
       </div>
     </div>
   </div>
