@@ -380,6 +380,20 @@ public enum L10n {
         }
     }
 
+    // MARK: - Tool flag help (shared)
+
+    public enum ToolFlag {
+        public static var claude: String {
+            isChinese ? "Anthropic Claude（預設）" : "Anthropic Claude (default)"
+        }
+        public static var codex: String {
+            isChinese ? "OpenAI Codex" : "OpenAI Codex"
+        }
+        public static var gemini: String {
+            isChinese ? "Google Gemini" : "Google Gemini"
+        }
+    }
+
     // MARK: - ResumeCommand
 
     public enum Resume {

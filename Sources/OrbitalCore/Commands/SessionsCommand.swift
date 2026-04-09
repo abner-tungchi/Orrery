@@ -7,13 +7,13 @@ public struct SessionsCommand: ParsableCommand {
         abstract: L10n.Sessions.abstract
     )
 
-    @Flag(help: "Show Anthropic Claude sessions")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.claude))
     public var claude: Bool = false
 
-    @Flag(help: "Show OpenAI Codex sessions")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.codex))
     public var codex: Bool = false
 
-    @Flag(help: "Show Google Gemini sessions")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.gemini))
     public var gemini: Bool = false
 
     public init() {}

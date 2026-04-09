@@ -8,13 +8,13 @@ public struct ResumeCommand: ParsableCommand {
         discussion: "Example: orbital resume 1 --dangerously-skip-permissions"
     )
 
-    @Flag(help: "Resume Anthropic Claude session (default)")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.claude))
     public var claude: Bool = false
 
-    @Flag(help: "Resume OpenAI Codex session")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.codex))
     public var codex: Bool = false
 
-    @Flag(help: "Resume Google Gemini session")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.gemini))
     public var gemini: Bool = false
 
     @Argument(parsing: .allUnrecognized)

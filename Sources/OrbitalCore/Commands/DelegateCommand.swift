@@ -8,13 +8,13 @@ public struct DelegateCommand: ParsableCommand {
         discussion: "Example: orbital delegate --claude -e work \"check error handling\""
     )
 
-    @Flag(help: "Use Anthropic Claude (default)")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.claude))
     public var claude: Bool = false
 
-    @Flag(help: "Use OpenAI Codex")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.codex))
     public var codex: Bool = false
 
-    @Flag(help: "Use Google Gemini")
+    @Flag(help: ArgumentHelp(L10n.ToolFlag.gemini))
     public var gemini: Bool = false
 
     @Option(name: .shortAndLong, help: ArgumentHelp(L10n.Delegate.envHelp))
