@@ -481,13 +481,15 @@
   <div class="install-label">Or via APT (Ubuntu / Debian)</div>
   <div class="code-block">
     <button class="copy-btn" data-cmd='echo "deb [trusted=yes] https://offskylab.github.io/apt stable main" | sudo tee /etc/apt/sources.list.d/orbital.list && sudo apt update && sudo apt install orbital'>Copy</button>
-    <span class="prompt">$ </span>sudo apt install orbital
+    <span class="prompt">$ </span>echo "deb [trusted=yes] https://offskylab.github.io/apt stable main" \<br/>
+    &nbsp;&nbsp;| sudo tee /etc/apt/sources.list.d/orbital.list<br/>
+    <span class="prompt">$ </span>sudo apt update && sudo apt install orbital
   </div>
   <div style="height:.75rem"></div>
   <div class="install-label">Activate shell integration</div>
   <div class="code-block">
-    <button class="copy-btn" data-cmd='eval "$(orbital setup)"'>Copy</button>
-    <span class="prompt">$ </span>eval "$(orbital setup)"
+    <button class="copy-btn" data-cmd='source ~/.orbital/activate.sh'>Copy</button>
+    <span class="prompt">$ </span>source ~/.orbital/activate.sh
   </div>
 </div>
 
